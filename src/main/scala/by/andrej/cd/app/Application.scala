@@ -1,10 +1,13 @@
 package by.andrej.cd.app
 
-import scalafx.application.JFXApp
+import by.andrej.cd.service.Burner
+
 import scalafx.application.JFXApp.PrimaryStage
+import scalafx.application.{JFXApp, Platform}
 import scalafx.collections.ObservableBuffer
-import scalafx.geometry.{Insets, Pos}
+import scalafx.geometry.Insets
 import scalafx.scene.Scene
+import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control._
 import scalafx.scene.layout.{BorderPane, GridPane, Priority}
 import scalafx.stage.FileChooser
@@ -43,9 +46,17 @@ object Application extends JFXApp {
   //set up text area
   val logTextArea = new TextArea
   //set up bottom pane
-  val burnButton = new Button("Burn")
+  val burnButton = new Button {
+    text = "Burn"
+    onMouseClicked = _ => {
+      burner.files = fileListView.items.get.toString.split('\n').toList.map(f => f.substring(1, f.length - 1))
+      burner.eject = false
+      burner.start()
+    }
+  }
   val progressBar = new ProgressBar {
     prefWidth = Int.MaxValue
+    progress = 0
   }
   val bottomPane = new GridPane {
     add(progressBar, 0, 0, 3, 1)
@@ -54,9 +65,11 @@ object Application extends JFXApp {
     hgap = 20
     hgrow = Priority.Always
   }
-
+  //set up burner thread
+  val burner = new Burner(begin, update, end)
+  // set up stage
   stage = new PrimaryStage {
-    title ="CD Burner"
+    title = "CD Burner"
     resizable = false
     scene = new Scene(700, 500) {
       //set up root pane
@@ -66,5 +79,24 @@ object Application extends JFXApp {
       rootPane.center = logTextArea
       root = rootPane
     }
+  }
+
+  def begin(): Unit = Platform.runLater {
+    addFileButton.disable = true
+    delFileButton.disable = true
+    burnButton.disable = true
+  }
+
+  def update(s: String): Unit = Platform.runLater {
+    logTextArea.appendText(s + '\n')
+  }
+
+  def end(res: Int): Unit = Platform.runLater {
+    if (res == 0) new Alert(AlertType.Information, "Burning has successfully finished").showAndWait()
+    else new Alert(AlertType.Error, "An error has occurred").showAndWait()
+    addFileButton.disable = false
+    delFileButton.disable = false
+    burnButton.disable = false
+    progressBar.progress = 0
   }
 }
