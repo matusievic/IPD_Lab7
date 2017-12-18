@@ -8,5 +8,13 @@
     <artifactId>cd-burner</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.scalafx/scalafx -->
+        <dependency>
+            <groupId>org.scalafx</groupId>
+            <artifactId>scalafx_2.12</artifactId>
+            <version>8.0.144-R12</version>
+        </dependency>
+    </dependencies>
 
 </project>
