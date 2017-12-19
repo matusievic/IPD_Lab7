@@ -49,8 +49,10 @@ object Application extends JFXApp {
   val burnButton = new Button {
     text = "Burn"
     onMouseClicked = _ => {
-      burner.files = fileListView.items.get.toString.split('\n').toList.map(f => f.substring(1, f.length - 1))
-      burner.eject = false
+      val files = fileListView.items.get.toString;
+      if (burner.getState != Thread.State.NEW) burner = new Burner(begin, update, end)
+      burner.files = files.substring(1, files.length - 1).split(", ").toList
+      burner.eject = ejectCheckBox.selected.value
       burner.start()
     }
   }
@@ -58,15 +60,17 @@ object Application extends JFXApp {
     prefWidth = Int.MaxValue
     progress = 0
   }
+  val ejectCheckBox = new CheckBox("Eject after burning")
   val bottomPane = new GridPane {
-    add(progressBar, 0, 0, 3, 1)
-    add(burnButton, 3, 0)
+    add(ejectCheckBox, 0, 0)
+    add(progressBar, 1, 0, 3, 1)
+    add(burnButton, 4, 0)
     margin = Insets(20)
     hgap = 20
     hgrow = Priority.Always
   }
   //set up burner thread
-  val burner = new Burner(begin, update, end)
+  var burner: Burner = new Burner(begin, update, end)
   // set up stage
   stage = new PrimaryStage {
     title = "CD Burner"
@@ -82,12 +86,22 @@ object Application extends JFXApp {
   }
 
   def begin(): Unit = Platform.runLater {
+    logTextArea.text.value = ""
     addFileButton.disable = true
     delFileButton.disable = true
     burnButton.disable = true
   }
 
   def update(s: String): Unit = Platform.runLater {
+    if (s.matches("Track \\d+:.+of.+")) {
+      val curBegin = s.indexOf(':') + 1
+      val curEnd = s.indexOf("of") - 1
+      val totalBegin = curEnd + 3
+      val totalEnd = s.indexOf("MB") - 1
+      val cur = s.substring(curBegin, curEnd).replaceAll("\\s", "").toDouble
+      val total = s.substring(totalBegin, totalEnd).replaceAll("\\s", "").toDouble
+      progressBar.progress  = cur / total
+    }
     logTextArea.appendText(s + '\n')
   }
 
