@@ -1,5 +1,12 @@
 package by.andrej.cd.app
 
+import java.awt
+import java.awt.event.{ActionEvent, ActionListener}
+import java.awt.{PopupMenu, SystemTray, TrayIcon}
+import java.io.File
+import javax.imageio.ImageIO
+import javax.swing.event.{ChangeEvent, ChangeListener}
+
 import by.andrej.cd.service.Burner
 
 import scalafx.application.JFXApp.PrimaryStage
@@ -13,6 +20,11 @@ import scalafx.scene.layout.{BorderPane, GridPane, Priority}
 import scalafx.stage.FileChooser
 
 object Application extends JFXApp {
+  //set up tray
+  val tray = new TrayIcon(ImageIO.read(new File("src/main/resources/icon.png")), "") {
+    if (SystemTray.isSupported) SystemTray.getSystemTray.add(this)
+    addActionListener(_ => Platform.runLater(stage.setIconified(false)))
+  }
   //set up files list
   val fileListView = new ListView[String]
   val addFileButton = new Button {
@@ -83,6 +95,7 @@ object Application extends JFXApp {
       rootPane.center = logTextArea
       root = rootPane
     }
+    onCloseRequest.setValue(_ => System.exit(0))
   }
 
   def begin(): Unit = Platform.runLater {
@@ -100,9 +113,10 @@ object Application extends JFXApp {
       val totalEnd = s.indexOf("MB") - 1
       val cur = s.substring(curBegin, curEnd).replaceAll("\\s", "").toDouble
       val total = s.substring(totalBegin, totalEnd).replaceAll("\\s", "").toDouble
-      progressBar.progress  = cur / total
+      progressBar.progress = cur / total
     }
     logTextArea.appendText(s + '\n')
+    tray.setToolTip(s)
   }
 
   def end(res: Int): Unit = Platform.runLater {
